@@ -41,10 +41,10 @@ do
 	then
 		
 		# Get btrfs usage info and store in an array
-		# Only analyze Data, System and Metada use an order of magnitude
+		# Only analyze Metadata, which can cause problems if we run out of space
 		# less space and don't cause issues
 
-		dataarray=(`btrfs fi df $filesystem | grep Data | awk -F= '{print $2 " " $3}' | awk -F[\ ,] '{print $1 " " $4}'`)
+		dataarray=(`btrfs fi df $filesystem | grep Meta | awk -F= '{print $2 " " $3}' | awk -F[\ ,] '{print $1 " " $4}'`)
 		
 		# Only proceed if there is useful output stored in the array
 
@@ -54,18 +54,13 @@ do
 			useddata=$(normalise_string_size ${dataarray[1]})
 			used_percent=`echo "$useddata * 100 / $totaldata" | bc`
 			
-			# Print a CRITICAL alert to syslog if the data chunks
-			# are under 75% used and filesystem usage is over 80%
-			# and a WARNING if fs is below 80%
+			# Print an alert to syslog if the metadata chunks
+			# are over 80% used and filesystem usage is over 80%
 
-			if [[ $used_percent -le 75 ]] && [[ $fsusage -ge 80 ]]
+			if [[ $used_percent -ge 80 ]] && [[ $fsusage -ge 80 ]]
 			then
-				logger -t CRITICAL "Btrfs balance required on filesystem $filesystem, run \"btrfs balance start -d -v $filesystem\" to correct this issue"
-			elif [[ $used_percent -le 75 ]] && [[ $fsusage -lt 80 ]]
-			then
-				logger -t WARNING "Btrfs balance required on filesystem $filesystem, run \"btrfs balance start -d -v $filesystem\" to correct this issue"
+				logger -t WARNING "Btrfs balance required on filesystem $filesystem, run \"btrfs balance start -v $filesystem\" to correct this issue"
 			fi
 		fi
 	fi
 done
-
