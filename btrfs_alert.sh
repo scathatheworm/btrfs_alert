@@ -1,8 +1,6 @@
 #!/bin/bash
 ## Licensed under GPLv2
 ## Author: David Ponessa
-## Email: david.ponessa@gmail.com
-## https://github.com/scathatheworm/btrfs_alert
 
 ## Usage: This script is intended to monitor btrfs wasted space in data chunks
 ## by logging a WARNING for btrfs balance required to syslog, and optionally
@@ -94,7 +92,7 @@ do
 
 	# Only proceed for filesystems with use space over FS_TH
 	fsusage=`df -P $filesystem | awk '$5 ~ "%" {print substr($5, 1, length($5)-1)}'`
-	if [[ $fsusage -gt $FS_TH ]]
+	if [[ $fsusage -ge $FS_TH ]]
 	then
 		# Get btrfs usage info and store in an array
 
@@ -110,7 +108,7 @@ do
 			used_data_percent=`echo "$useddata * 100 / $totaldata" | bc`
 
 			# Take action for TH detected issues
-			if [[ $used_data_percent -le ${BTRFS_TH} ]] && [[ $fsusage -ge ${FS_TH} ]]
+			if [[ $used_data_percent -le ${BTRFS_TH} ]]
 			then
 				logger -t WARNING "Btrfs balance required on filesystem $filesystem, you can run \"btrfs balance start -d -v $filesystem\" to correct this issue"
                         	if [[ "$FIX" ]]
@@ -131,7 +129,7 @@ do
                         used_metadata_percent=`echo "$usedmetadata * 100 / $totalmetadata" | bc`
 
                         # Take action for TH detected issues
-			if [[ $used_metadata_percent -ge ${META_TH} ]] && [[ $fsusage -ge ${FS_TH} ]]
+			if [[ $used_metadata_percent -ge ${META_TH} ]]
 			then
 				logger -t WARNING "Btrfs metadata balance required on filesystem $filesystem, you can run \"btrfs balance start -m -v $filesystem\" to correct this issue"
                         	if [[ "$FIX" ]]
